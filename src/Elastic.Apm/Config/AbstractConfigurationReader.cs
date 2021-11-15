@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Elastic.Apm.Helpers;
@@ -19,29 +20,16 @@ namespace Elastic.Apm.Config
 	public abstract class AbstractConfigurationReader
 	{
 		private const string ThisClassName = nameof(AbstractConfigurationReader);
-		private readonly LazyContextualInit<int> _cachedMaxBatchEventCount = new LazyContextualInit<int>();
-		private readonly LazyContextualInit<int> _cachedMaxQueueEventCount = new LazyContextualInit<int>();
-		private readonly LazyContextualInit<IReadOnlyList<Uri>> _cachedServerUrls = new LazyContextualInit<IReadOnlyList<Uri>>();
-		private readonly LazyContextualInit<Uri> _cachedServerUrl = new LazyContextualInit<Uri>();
-
-		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersDisableMetrics =
-			new LazyContextualInit<IReadOnlyList<WildcardMatcher>>();
-
-		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersIgnoreMessageQueues =
-			new LazyContextualInit<IReadOnlyList<WildcardMatcher>>();
-
-		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersSanitizeFieldNames =
-			new LazyContextualInit<IReadOnlyList<WildcardMatcher>>();
-
-		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersTransactionIgnoreUrls =
-			new LazyContextualInit<IReadOnlyList<WildcardMatcher>>();
-
-		private readonly LazyContextualInit<IReadOnlyList<string>> _cachedExcludedNamespaces =
-			new LazyContextualInit<IReadOnlyList<string>>();
-
-		private readonly LazyContextualInit<IReadOnlyList<string>> _cachedApplicationNamespaces =
-			new LazyContextualInit<IReadOnlyList<string>>();
-
+		private readonly LazyContextualInit<int> _cachedMaxBatchEventCount = new();
+		private readonly LazyContextualInit<int> _cachedMaxQueueEventCount = new();
+		private readonly LazyContextualInit<IReadOnlyList<Uri>> _cachedServerUrls = new();
+		private readonly LazyContextualInit<Uri> _cachedServerUrl = new();
+		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersDisableMetrics = new();
+		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersIgnoreMessageQueues = new();
+		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersSanitizeFieldNames = new();
+		private readonly LazyContextualInit<IReadOnlyList<WildcardMatcher>> _cachedWildcardMatchersTransactionIgnoreUrls = new();
+		private readonly LazyContextualInit<IReadOnlyList<string>> _cachedExcludedNamespaces = new();
+		private readonly LazyContextualInit<IReadOnlyList<string>> _cachedApplicationNamespaces = new();
 		private readonly IApmLogger _logger;
 
 		protected AbstractConfigurationReader(IApmLogger logger, string dbgDerivedClassName) =>
@@ -537,52 +525,61 @@ namespace Elastic.Apm.Config
 
 		private bool TryParseTimeInterval(string valueAsString, out double valueInMilliseconds, TimeSuffix defaultSuffix)
 		{
-			switch (valueAsString)
-			{
-				case string _ when valueAsString.Length >= 2 && valueAsString.Substring(valueAsString.Length - 2).ToLowerInvariant() == "ms":
-					return TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 2), out valueInMilliseconds);
+			if (valueAsString.EndsWith("ms", StringComparison.OrdinalIgnoreCase))
+				return TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 2), out valueInMilliseconds);
 
-				case string _ when char.ToLower(valueAsString.Last()) == 's':
-					if (!TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 1), out var valueInSeconds))
-					{
-						valueInMilliseconds = 0;
-						return false;
-					}
+			if (valueAsString.EndsWith("us", StringComparison.OrdinalIgnoreCase))
+			{
+				if (TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 2), out var valueInMicroseconds))
+				{
+					valueInMilliseconds = valueInMicroseconds / 1000;
+					return true;
+				}
+
+				valueInMilliseconds = 0;
+				return false;
+			}
+
+			if (valueAsString.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+			{
+				if (TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 1), out var valueInSeconds))
+				{
 					valueInMilliseconds = TimeSpan.FromSeconds(valueInSeconds).TotalMilliseconds;
 					return true;
+				}
 
-				case string _ when char.ToLower(valueAsString.Last()) == 'm':
-					if (!TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 1), out var valueInMinutes))
-					{
-						valueInMilliseconds = 0;
-						return false;
-					}
+				valueInMilliseconds = 0;
+				return false;
+			}
+
+			if (valueAsString.EndsWith("m", StringComparison.OrdinalIgnoreCase))
+			{
+				if (TryParseFloatingPoint(valueAsString.Substring(0, valueAsString.Length - 1), out var valueInMinutes))
+				{
 					valueInMilliseconds = TimeSpan.FromMinutes(valueInMinutes).TotalMilliseconds;
 					return true;
-				default:
-					if (!TryParseFloatingPoint(valueAsString, out var valueNoUnits))
-					{
-						valueInMilliseconds = 0;
-						return false;
-					}
+				}
 
-					switch (defaultSuffix)
-					{
-						case TimeSuffix.M:
-							valueInMilliseconds = TimeSpan.FromMinutes(valueNoUnits).TotalMilliseconds;
-							break;
-						case TimeSuffix.Ms:
-							valueInMilliseconds = TimeSpan.FromMilliseconds(valueNoUnits).TotalMilliseconds;
-							break;
-						case TimeSuffix.S:
-							valueInMilliseconds = TimeSpan.FromSeconds(valueNoUnits).TotalMilliseconds;
-							break;
-						default:
-							throw new ArgumentException($"Unexpected TimeSuffix value: {defaultSuffix}", /* paramName: */ nameof(defaultSuffix));
-					}
-
-					return true;
+				valueInMilliseconds = 0;
+				return false;
 			}
+
+			if (!TryParseFloatingPoint(valueAsString, out var valueNoUnits))
+			{
+				valueInMilliseconds = 0;
+				return false;
+			}
+
+			valueInMilliseconds = defaultSuffix switch
+			{
+				TimeSuffix.M => TimeSpan.FromMinutes(valueNoUnits).TotalMilliseconds,
+				TimeSuffix.S => TimeSpan.FromSeconds(valueNoUnits).TotalMilliseconds,
+				TimeSuffix.Ms => valueNoUnits,
+				TimeSuffix.Us => valueNoUnits / 1000,
+				_ => throw new ArgumentException($"Unexpected TimeSuffix value: {defaultSuffix}", /* paramName: */ nameof(defaultSuffix))
+			};
+
+			return true;
 		}
 
 		private AssemblyName DiscoverEntryAssemblyName()
@@ -696,6 +693,7 @@ namespace Elastic.Apm.Config
 			return kv.Value;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool TryParseFloatingPoint(string valueAsString, out double result) =>
 			double.TryParse(valueAsString, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
@@ -1003,9 +1001,10 @@ namespace Elastic.Apm.Config
 
 		private enum TimeSuffix
 		{
-			M,
+			Us,
 			Ms,
-			S
+			S,
+			M,
 		}
 
 		private static bool TryParseUri(string u, out Uri uri)
@@ -1014,6 +1013,40 @@ namespace Elastic.Apm.Config
 			uri = null;
 			if (!Uri.TryCreate(u, UriKind.Absolute, out uri)) return false;
 			return uri.IsWellFormedOriginalString() && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+		}
+
+		protected double ParseExitSpanMinDurationInMilliseconds(ConfigurationKeyValue kv)
+		{
+			string value;
+			if (kv == null || string.IsNullOrWhiteSpace(kv.Value))
+				value = DefaultValues.ExitSpanMinDuration;
+			else
+				value = kv.Value;
+
+			double valueInMilliseconds;
+
+			try
+			{
+				if (!TryParseTimeInterval(value, out valueInMilliseconds, TimeSuffix.Ms))
+				{
+					_logger?.Error()
+						?.Log("Failed to parse provided exit span minimum duration `{ProvidedExitSpanMinDuration}' - " +
+							"using default: {DefaultExitSpanMinDuration}",
+							value,
+							DefaultValues.ExitSpanMinDuration);
+					return DefaultValues.ExitSpanMinDurationInMilliseconds;
+				}
+			}
+			catch (ArgumentException e)
+			{
+				_logger?.Critical()
+					?.LogException(e, nameof(ArgumentException) + " thrown from TryParseTimeInterval which means a programming bug - " +
+						"using default: {DefaultExitSpanMinDuration}",
+						DefaultValues.ExitSpanMinDuration);
+				return DefaultValues.ExitSpanMinDurationInMilliseconds;
+			}
+
+			return valueInMilliseconds;
 		}
 	}
 }

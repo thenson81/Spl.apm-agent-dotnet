@@ -25,6 +25,8 @@ namespace Elastic.Apm.Config
 			public const bool CaptureHeaders = true;
 			public const bool CentralConfig = true;
 			public const string CloudProvider = SupportedValues.CloudProviderAuto;
+			public const string ExitSpanMinDuration = "1ms";
+			public const double ExitSpanMinDurationInMilliseconds = 1;
 			public const int FlushIntervalInMilliseconds = 10_000; // 10 seconds
 			public const LogLevel LogLevel = Logging.LogLevel.Error;
 			public const int MaxBatchEventCount = 10;
@@ -56,9 +58,9 @@ namespace Elastic.Apm.Config
 					"Giraffe."
 				}.AsReadOnly();
 
-			public static List<WildcardMatcher> DisableMetrics = new List<WildcardMatcher>();
+			public static List<WildcardMatcher> DisableMetrics = new();
 
-			public static List<WildcardMatcher> IgnoreMessageQueues = new List<WildcardMatcher>();
+			public static List<WildcardMatcher> IgnoreMessageQueues = new();
 
 			public static List<WildcardMatcher> SanitizeFieldNames;
 
@@ -121,6 +123,7 @@ namespace Elastic.Apm.Config
 			public const string Enabled = Prefix + "ENABLED";
 			public const string Environment = Prefix + "ENVIRONMENT";
 			public const string ExcludedNamespaces = Prefix + "EXCLUDED_NAMESPACES";
+			public const string ExitSpanMinDuration = Prefix + "EXIT_SPAN_MIN_DURATION";
 			public const string FlushInterval = Prefix + "FLUSH_INTERVAL";
 
 			//This setting is Full Framework only:
@@ -165,6 +168,7 @@ namespace Elastic.Apm.Config
 			public const string Enabled = Prefix + nameof(Enabled);
 			public const string Environment = Prefix + nameof(Environment);
 			public const string ExcludedNamespaces = Prefix + nameof(ExcludedNamespaces);
+			public const string ExitSpanMinDuration = Prefix + nameof(ExitSpanMinDuration);
 			public const string FlushInterval = Prefix + nameof(FlushInterval);
 			//This setting is Full Framework only:
 			public const string FullFrameworkConfigurationReaderType = Prefix + nameof(FullFrameworkConfigurationReaderType);
@@ -202,7 +206,7 @@ namespace Elastic.Apm.Config
 			public const string CaptureBodyTransactions = "transactions";
 
 			public static readonly List<string> CaptureBodySupportedValues =
-				new List<string> { CaptureBodyOff, CaptureBodyAll, CaptureBodyErrors, CaptureBodyTransactions };
+				new() { CaptureBodyOff, CaptureBodyAll, CaptureBodyErrors, CaptureBodyTransactions };
 
 			public const string CloudProviderAws = AwsCloudMetadataProvider.Name;
 			public const string CloudProviderAzure = AzureCloudMetadataProvider.Name;
@@ -210,7 +214,7 @@ namespace Elastic.Apm.Config
 			public const string CloudProviderNone = "none";
 			public const string CloudProviderAuto = "auto";
 
-			public static readonly HashSet<string> CloudProviders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+			public static readonly HashSet<string> CloudProviders = new(StringComparer.OrdinalIgnoreCase)
 			{
 				CloudProviderAuto, CloudProviderAws, CloudProviderAzure, CloudProviderGcp, CloudProviderNone
 			};
