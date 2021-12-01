@@ -32,6 +32,20 @@ namespace Elastic.Apm.Model
 		private readonly IApmLogger _logger;
 		private readonly Span _parentSpan;
 		private readonly IPayloadSender _payloadSender;
+		private bool _isDiscardable;
+		private bool _isEnded;
+		private bool _outcomeChangedThroughApi;
+
+		/// <summary>
+		/// In general if there is an error on the span, the outcome will be <code>Outcome.Failure</code>, otherwise it'll be
+		/// <code>Outcome.Success</code>.
+		/// There are some exceptions to this (see spec:
+		/// https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans.md#span-outcome) when it can be
+		/// <code>Outcome.Unknown</code>.
+		/// Use <see cref="_outcomeChangedThroughApi" /> to check if it was specifically set to <code>Outcome.Unknown</code>, or if
+		/// it's just the default value.
+		/// </summary>
+		internal Outcome _outcome;
 
 		[JsonConstructor]
 		// ReSharper disable once UnusedMember.Local - this is meant for deserialization
@@ -114,21 +128,6 @@ namespace Elastic.Apm.Model
 					this, TimeUtils.FormatTimestampForLog(Timestamp), Timestamp, _parentSpan);
 		}
 
-		private bool _isEnded;
-
-		/// <summary>
-		/// In general if there is an error on the span, the outcome will be <code>Outcome.Failure</code>, otherwise it'll be
-		/// <code>Outcome.Success</code>.
-		/// There are some exceptions to this (see spec:
-		/// https://github.com/elastic/apm/blob/master/specs/agents/tracing-spans.md#span-outcome) when it can be
-		/// <code>Outcome.Unknown</code>.
-		/// Use <see cref="_outcomeChangedThroughApi" /> to check if it was specifically set to <code>Outcome.Unknown</code>, or if
-		/// it's just the default value.
-		/// </summary>
-		internal Outcome _outcome;
-
-		private bool _outcomeChangedThroughApi;
-
 		[MaxLength]
 		public string Action { get; set; }
 
@@ -148,6 +147,18 @@ namespace Elastic.Apm.Model
 		/// <seealso cref="ShouldSerializeContext" />
 		/// </summary>
 		public SpanContext Context => _context.Value;
+
+		/// <summary>
+		/// Determines whether the span can be discarded/dropped
+		/// </summary>
+		[JsonIgnore]
+		public bool IsDiscardable => IsExitSpan && Outcome == Outcome.Success && !TraceContextPropagated;
+
+		/// <summary>
+		/// Whether the Trace context is propagated.
+		/// </summary>
+		[JsonIgnore]
+		public bool TraceContextPropagated { get; set; }
 
 		/// <inheritdoc />
 		/// <summary>
@@ -261,7 +272,8 @@ namespace Elastic.Apm.Model
 			{ nameof(Name), Name },
 			{ nameof(Type), Type },
 			{ nameof(Outcome), Outcome },
-			{ nameof(IsSampled), IsSampled }
+			{ nameof(IsSampled), IsSampled },
+			{ nameof(IsDiscardable), IsDiscardable },
 		}.ToString();
 
 		public bool TryGetLabel<T>(string key, out T value)
@@ -307,7 +319,7 @@ namespace Elastic.Apm.Model
 		}
 
 		/// <summary>
-		/// When the transaction has ended and before being queued to send to APM server
+		/// When the span has ended and before being queued to send to APM server
 		/// </summary>
 		public event EventHandler Ended;
 
@@ -363,10 +375,11 @@ namespace Elastic.Apm.Model
 			handler?.Invoke(this, EventArgs.Empty);
 			Ended = null;
 
-			if (_enclosingTransaction.SpanTimings.ContainsKey(new SpanTimerKey(Type, Subtype)))
-				_enclosingTransaction.SpanTimings[new SpanTimerKey(Type, Subtype)].IncrementTimer(SelfDuration);
+			var spanTimerKey = new SpanTimerKey(Type, Subtype);
+			if (_enclosingTransaction.SpanTimings.TryGetValue(spanTimerKey, out var spanTimer))
+				spanTimer.IncrementTimer(SelfDuration);
 			else
-				_enclosingTransaction.SpanTimings.TryAdd(new SpanTimerKey(Type, Subtype), new SpanTimer(SelfDuration));
+				_enclosingTransaction.SpanTimings.TryAdd(spanTimerKey, new SpanTimer(SelfDuration));
 
 			try
 			{
@@ -382,6 +395,13 @@ namespace Elastic.Apm.Model
 
 			if (ShouldBeSentToApmServer && isFirstEndCall)
 			{
+				var exitSpanMinDuration = _enclosingTransaction.Configuration.ExitSpanMinDuration;
+				if (IsDiscardable && exitSpanMinDuration > TimeSpan.Zero && Duration.Value < exitSpanMinDuration.TotalMicroseconds())
+				{
+
+				}
+
+
 				// Spans are sent only for sampled transactions so it's only worth capturing stack trace for sampled spans
 				// ReSharper disable once CompareOfFloatsByEqualityOperator
 				if (Configuration.StackTraceLimit != 0 && Configuration.SpanFramesMinDurationInMilliseconds != 0 && RawStackTrace == null

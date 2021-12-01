@@ -89,6 +89,15 @@ namespace Elastic.Apm.Config
 		IReadOnlyCollection<string> ExcludedNamespaces { get; }
 
 		/// <summary>
+		/// The minimum duration threshold to consider when deciding to discard/drop an exit span.
+		/// If an exit span is fast, chances are that it is not relevant for analyzing latency issues
+		/// and therefore can be dropped. Exit spans that propagate Trace Context, or have an outcome that
+		/// is not success will not be dropped.
+		/// Default value: <see cref="ConfigConsts.DefaultValues.ExitSpanMinDurationInMilliseconds" />
+		/// </summary>
+		TimeSpan ExitSpanMinDuration { get; }
+
+		/// <summary>
 		/// The maximal amount of time (in seconds) events are held in queue until there is enough to send a batch.
 		/// It's possible for a batch to contain less then <seealso cref="MaxBatchEventCount" /> events
 		/// if there are events that need to be sent out because they were held for too long.

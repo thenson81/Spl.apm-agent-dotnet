@@ -24,6 +24,11 @@ namespace Elastic.Apm.Api
 		SpanContext Context { get; }
 
 		/// <summary>
+		/// Determines whether this span can be discarded/dropped.
+		/// </summary>
+		public bool IsDiscardable { get; }
+
+		/// <summary>
 		/// Indicates that this span is an exit span.
 		/// </summary>
 		public bool IsExitSpan { get; }

@@ -4,13 +4,15 @@
 
 using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Elastic.Apm.Helpers
 {
 	internal static class TimeExtensions
 	{
-		private const int NumberOfTicksPerSecond = 10_000_000;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static double TotalMicroseconds(this TimeSpan timeSpan) => timeSpan.TotalMilliseconds / 1_000;
 
 		internal static string FormatForLog(this DateTime dateTime, bool includeKind = true) =>
 			dateTime.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture) + (includeKind ? $" {dateTime.Kind.FormatForLog()}" : "");
@@ -93,6 +95,6 @@ namespace Elastic.Apm.Helpers
 		}
 
 		internal static TimeSpan TruncateToSeconds(this TimeSpan timeSpan) =>
-			TimeSpan.FromTicks(Math.Sign(timeSpan.Ticks) * (Math.Abs(timeSpan.Ticks) / NumberOfTicksPerSecond) * NumberOfTicksPerSecond);
+			TimeSpan.FromTicks(Math.Sign(timeSpan.Ticks) * (Math.Abs(timeSpan.Ticks) / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond);
 	}
 }

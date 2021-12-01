@@ -30,9 +30,9 @@ namespace Elastic.Apm.Config
 			public const int FlushIntervalInMilliseconds = 10_000; // 10 seconds
 			public const LogLevel LogLevel = Logging.LogLevel.Error;
 			public const int MaxBatchEventCount = 10;
-			public const int MaxQueueEventCount = 1000;
+			public const int MaxQueueEventCount = 1_000;
 			public const string MetricsInterval = "30s";
-			public const double MetricsIntervalInMilliseconds = 30 * 1000;
+			public const double MetricsIntervalInMilliseconds = 30 * 1_000;
 			public const string SpanFramesMinDuration = "5ms";
 			public const double SpanFramesMinDurationInMilliseconds = 5;
 			public const int StackTraceLimit = 50;
@@ -106,7 +106,7 @@ namespace Elastic.Apm.Config
 					TransactionIgnoreUrls.Add(WildcardMatcher.ValueOf(item));
 			}
 
-			public static Uri ServerUri => new Uri($"http://localhost:{ApmServerPort}");
+			public static Uri ServerUri => new($"http://localhost:{ApmServerPort}");
 		}
 
 		public static class EnvVarNames

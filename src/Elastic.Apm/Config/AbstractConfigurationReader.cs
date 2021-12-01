@@ -464,9 +464,13 @@ namespace Elastic.Apm.Config
 			_cachedMaxQueueEventCount.IfNotInited?.InitOrGet(() => ParseMaxXyzEventCount(kv, DefaultValues.MaxQueueEventCount, "MaxQueueEventCount"))
 			?? _cachedMaxQueueEventCount.Value;
 
+		protected TimeSpan ParseExitSpanMinDuration(ConfigurationKeyValue kv) =>
+			ParsePositiveOrZeroTimeIntervalInMillisecondsImpl(kv, TimeSuffix.Ms, TimeSpan.FromMilliseconds(DefaultValues.ExitSpanMinDurationInMilliseconds),
+				nameof(IConfiguration.ExitSpanMinDuration));
+
 		protected TimeSpan ParseFlushInterval(ConfigurationKeyValue kv) =>
 			ParsePositiveOrZeroTimeIntervalInMillisecondsImpl(kv, TimeSuffix.S, TimeSpan.FromMilliseconds(DefaultValues.FlushIntervalInMilliseconds),
-				"FlushInterval");
+				nameof(IConfiguration.FlushInterval));
 
 		private TimeSpan ParsePositiveOrZeroTimeIntervalInMillisecondsImpl(ConfigurationKeyValue kv, TimeSuffix defaultSuffix,
 			TimeSpan defaultValue, string dbgOptionName
@@ -1013,40 +1017,6 @@ namespace Elastic.Apm.Config
 			uri = null;
 			if (!Uri.TryCreate(u, UriKind.Absolute, out uri)) return false;
 			return uri.IsWellFormedOriginalString() && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
-		}
-
-		protected double ParseExitSpanMinDurationInMilliseconds(ConfigurationKeyValue kv)
-		{
-			string value;
-			if (kv == null || string.IsNullOrWhiteSpace(kv.Value))
-				value = DefaultValues.ExitSpanMinDuration;
-			else
-				value = kv.Value;
-
-			double valueInMilliseconds;
-
-			try
-			{
-				if (!TryParseTimeInterval(value, out valueInMilliseconds, TimeSuffix.Ms))
-				{
-					_logger?.Error()
-						?.Log("Failed to parse provided exit span minimum duration `{ProvidedExitSpanMinDuration}' - " +
-							"using default: {DefaultExitSpanMinDuration}",
-							value,
-							DefaultValues.ExitSpanMinDuration);
-					return DefaultValues.ExitSpanMinDurationInMilliseconds;
-				}
-			}
-			catch (ArgumentException e)
-			{
-				_logger?.Critical()
-					?.LogException(e, nameof(ArgumentException) + " thrown from TryParseTimeInterval which means a programming bug - " +
-						"using default: {DefaultExitSpanMinDuration}",
-						DefaultValues.ExitSpanMinDuration);
-				return DefaultValues.ExitSpanMinDurationInMilliseconds;
-			}
-
-			return valueInMilliseconds;
 		}
 	}
 }

@@ -62,6 +62,9 @@ namespace Elastic.Apm.Config
 		public IReadOnlyCollection<string> ExcludedNamespaces =>
 			ParseExcludedNamespaces(Read(KeyNames.ExcludedNamespaces, EnvVarNames.ExcludedNamespaces));
 
+		public TimeSpan ExitSpanMinDuration =>
+			ParseExitSpanMinDuration(Read(KeyNames.ExitSpanMinDuration, EnvVarNames.ExitSpanMinDuration));
+
 		public virtual TimeSpan FlushInterval =>
 			ParseFlushInterval(Read(KeyNames.FlushInterval, EnvVarNames.FlushInterval));
 

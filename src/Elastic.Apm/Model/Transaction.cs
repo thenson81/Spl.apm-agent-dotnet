@@ -453,14 +453,11 @@ namespace Elastic.Apm.Model
 
 		internal void UpdateDroppedSpanStats(string destinationServiceResource, Outcome outcome, double duration)
 		{
-			if (_droppedSpanStatsMap == null)
+			if (_droppedSpanStatsMap is null)
 			{
 				_droppedSpanStatsMap = new Dictionary<DroppedSpanStatsKey, DroppedSpanStats>
 				{
-					{
-						new DroppedSpanStatsKey(destinationServiceResource, outcome),
-						new DroppedSpanStats(destinationServiceResource, outcome, duration)
-					}
+					[new DroppedSpanStatsKey(destinationServiceResource, outcome)] = new(destinationServiceResource, outcome, duration)
 				};
 			}
 			else
@@ -468,16 +465,14 @@ namespace Elastic.Apm.Model
 				if (_droppedSpanStatsMap.Count >= 128)
 					return;
 
-				if (_droppedSpanStatsMap.TryGetValue(new DroppedSpanStatsKey(destinationServiceResource, outcome), out var item))
+				var key = new DroppedSpanStatsKey(destinationServiceResource, outcome);
+				if (_droppedSpanStatsMap.TryGetValue(key, out var item))
 				{
 					item.DurationCount++;
 					item.DurationSumUs += duration;
 				}
 				else
-				{
-					_droppedSpanStatsMap.Add(new DroppedSpanStatsKey(destinationServiceResource, outcome),
-						new DroppedSpanStats(destinationServiceResource, outcome, duration));
-				}
+					_droppedSpanStatsMap.Add(key, new DroppedSpanStats(destinationServiceResource, outcome, duration));
 			}
 		}
 
