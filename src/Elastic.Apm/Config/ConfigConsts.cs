@@ -27,8 +27,8 @@ namespace Elastic.Apm.Config
 			public const bool CentralConfig = true;
 			public const string CloudProvider = SupportedValues.CloudProviderAuto;
 			public const bool EnableOpenTelemetryBridge = false;
-			public const string ExitSpanMinDuration = "1ms";
-			public const int ExitSpanMinDurationInMilliseconds = 1000;
+			public const string ExitSpanMinDuration = "0ms";
+			public const int ExitSpanMinDurationInMilliseconds = 0;
 			public const int FlushIntervalInMilliseconds = 10_000; // 10 seconds
 			public const LogLevel LogLevel = Logging.LogLevel.Error;
 			public const int MaxBatchEventCount = 10;
@@ -42,6 +42,8 @@ namespace Elastic.Apm.Config
 			public const double SpanCompressionSameKindMaxDurationInMilliseconds = 0;
 			public const string SpanFramesMinDuration = "5ms";
 			public const double SpanFramesMinDurationInMilliseconds = 5;
+			public const string SpanStackTraceMinDuration = "5ms";
+			public const double SpanStackTraceMinDurationInMilliseconds = 5;
 			public const int StackTraceLimit = 50;
 			public const bool TraceContextIgnoreSampledFalse = false;
 			public const int TransactionMaxSpans = 500;
@@ -89,7 +91,8 @@ namespace Elastic.Apm.Config
 							 "*credit*",
 							 "*card*",
 							 "*auth*",
-							 "set-cookie"
+							 "set-cookie",
+							 "*principal*"
 						 })
 					SanitizeFieldNames.Add(WildcardMatcher.ValueOf(item));
 
@@ -156,6 +159,7 @@ namespace Elastic.Apm.Config
 			public const string SpanCompressionEnabled = Prefix + "SPAN_COMPRESSION_ENABLED";
 			public const string SpanCompressionExactMatchMaxDuration = Prefix + "SPAN_COMPRESSION_EXACT_MATCH_MAX_DURATION";
 			public const string SpanCompressionSameKindMaxDuration = Prefix + "SPAN_COMPRESSION_SAME_KIND_MAX_DURATION";
+			public const string SpanStackTraceMinDuration = Prefix + "SPAN_STACK_TRACE_MIN_DURATION";
 			public const string SpanFramesMinDuration = Prefix + "SPAN_FRAMES_MIN_DURATION";
 			public const string StackTraceLimit = Prefix + "STACK_TRACE_LIMIT";
 			public const string TraceContextIgnoreSampledFalse = Prefix + "TRACE_CONTEXT_IGNORE_SAMPLED_FALSE";
@@ -206,6 +210,7 @@ namespace Elastic.Apm.Config
 			public const string SpanCompressionEnabled = Prefix + nameof(SpanCompressionEnabled);
 			public const string SpanCompressionExactMatchMaxDuration = Prefix + nameof(SpanCompressionExactMatchMaxDuration);
 			public const string SpanCompressionSameKindMaxDuration = Prefix + nameof(SpanCompressionSameKindMaxDuration);
+			public const string SpanStackTraceMinDuration = Prefix + nameof(SpanStackTraceMinDuration);
 			public const string SpanFramesMinDuration = Prefix + nameof(SpanFramesMinDuration);
 			public const string StackTraceLimit = Prefix + nameof(StackTraceLimit);
 			public const string TraceContextIgnoreSampledFalse = Prefix + nameof(TraceContextIgnoreSampledFalse);
