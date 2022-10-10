@@ -29,7 +29,7 @@ namespace Elastic.Apm.Azure.ServiceBus.Tests
 			_environment = environment;
 
 			var logger = new XUnitLogger(LogLevel.Trace, output);
-			_sender = new MockPayloadSender(logger);
+			_sender = new MockPayloadSender(logger) { IsStrictSpanCheckEnabled = false }; // TODO!
 			_agent = new ApmAgent(new TestAgentComponents(logger: logger, payloadSender: _sender));
 			_agent.Subscribe(new AzureMessagingServiceBusDiagnosticsSubscriber());
 
